@@ -75,27 +75,108 @@ Linux采用“树形”文件系统，从根目录`/`开始
 
 ## 文本编辑
 
+在linux中，可以使用vim编辑配置文件、编写脚本，vim是命令行下的文本编辑器
 
+vim有三种基本模式：
 
-## 软件包管理APT/YUM
+- 普通模式：打开文件后的默认模式，用于移动光标、删除文本等
+- 插入模式：在普通模式下按`i`进入，可以输入和编辑文本
+- 命令行模式：在普通模式下按`:`进入，用于执行保存、退出等命令
 
+常用操作序列：
 
+1. 用`vim filename`打开文件
+2. 按`i`键进入插入模式
+3. 编辑文本
+4. 按`ESC`键返回普通模式
+5. 输入`:wq`后按回车，保存并推出
 
 # 第二阶段：系统管理与脚本
 
+## 系统管理
 
+- 进程管理：进程是正在执行的程序的实例，常用命令有：
+  - **查看进程**：`ps aux`可以查看所有进程的详细信息。`top`或更友好的 `htop`可以实时动态查看系统资源（CPU、内存）使用情况和进程状态
+  - **管理进程**：`kill [PID]`用于终止指定进程（先用 `ps`或 `top`获取进程ID），`kill -9 [PID]`可以强制结束无响应的进程。`nohup`命令可以让进程在你退出终端后继续在后台运行
+- 日志分析：
+  - **主要日志目录**：系统和服务日志通常存放在 `/var/log/`目录下
+  - **查看工具**：`journalctl`是查询 systemd 系统日志的强大工具例如，`journalctl -u nginx.service --since "1 hour ago"`可以查看 Nginx 服务最近一小时的日志。对于日志文件，使用 `less`、`grep`、`tail -f`等命令进行查看和跟踪
+- 软件包管理APT/YUM：Linux中，安装软件通过包管理工具，它会自动解决软件依赖关系
+  - Ubuntu/Debian系列：使用`apt`命令
+    - 更新软件源列表：`sudo apt update`
+    - 安装一个软件：`sudo apt install package_name`
+  - CentOS/RHEL系列：使用`yum`或者`dnf`命令
+    - 安装软件：`sudo yum install package_name`或 `sudo dnf install package_name`。`yum groupinstall "Development Tools"`可以安装整个开发工具组
+- **网络配置与管理**
+  - **配置IP地址**：可以使用 `ip addr`命令查看和配置网络接口。在Ubuntu中，可以通过编辑 `/etc/netplan/`下的配置文件并执行 `sudo netplan apply`来设置静态IP。
+  - **防火墙**：`ufw`(Uncomplicated Firewall) 是易于使用的防火墙配置工具，例如 `sudo ufw allow 80/tcp`开放HTTP端口。`firewalld`是CentOS/RHEL上的常用工具。传统的 `iptables`功能强大但配置复杂。
+  - **SSH安全访问**：使用 `ssh-keygen`生成密钥对，然后用 `ssh-copy-id user@server`上传公钥，可以实现免密码安全登录。`ssh -L 8080:localhost:80 user@server`可以实现本地端口转发
 
 ## Shell脚本编程与自动化任务
 
+Shell脚本的基础语法：
 
+1. 脚本结构与执行方式
 
-## 进程管理与性能监控
+   ```
+   #!/bin/bash
+   ```
 
+   这个开头叫做Shebang，它告诉系统使用哪个解释器来执行这个脚本。脚本中的注释以`#`开头。
 
+   运行脚本前，需要先赋予执行权限：
 
-## 日志分析与故障排查
+   1. `chmod +x your_script.sh`
+   2. `./your_script.sh`
 
+2. 变量：变量用于存储数据
 
+   1. 定义变量：`name="Alice"`,`=`两边不能有空格
+   2. 使用变量：使用变量要在前面加`$`,注意使用单引号还是双引号
+      1. 输入`echo '$name'`，显示`name`
+      2. 输入`echo "$name"`,显示`Alice`
+   3. 特殊变量：脚本可以接收参数。`$1`代表第一个参数，`$2`代表第二个，以此类推。`$#`表示参数个数，`$@`代表所有参数
+
+3. 控制结构
+
+   1. **条件判断（if）**: 根据条件执行不同代码。if [ 条件 ]; then ... elif [ 条件 ]; then ... else ... fi。`[ ... ]`是测试命令，注意方括号内侧必须留有空格
+
+      - **文件测试**：`[ -f "$file" ]`(是否存在且为普通文件), `[ -d "$dir" ]`(是否为目录), `[ -r "$file" ]`(是否可读) 。
+      - **字符串比较**：`[ "$str1" = "$str2" ]`(相等), `[ -z "$str" ]`(是否为空) 。**强烈建议变量用双引号括起**，以防空变量导致语法错误。
+      - **数值比较**：使用 `-eq`(等于), `-ne`(不等于), `-gt`(大于), `-lt`(小于) 等操作符 。**注意**：不要用 `=`和 `!=`来比较数字。
+      - **逻辑组合**：使用 `-a`表示逻辑与 (AND)，`-o`表示逻辑或 (OR) 。例如 `[ $age -gt 18 -a "$name" = "Alice" ]`
+
+      ```shell
+      if [ $# -gt 1 ]; then
+          echo "错误：参数过多！" >&2
+          show_usage
+          exit 1
+      fi
+      ```
+
+      
+
+   2. **`case`多路分支**：基于变量的值匹配多个模式。case $变量 in 模式1) ... ;; 模式2) ... ;; *) ... ;; esac
+
+   3. **`for`循环**：遍历列表或执行指定次数的循环。
+
+      1. **列表遍历**: `for 变量 in 列表; do ... done`
+      2. **C语言风格**: `for ((初始化; 条件; 步进)); do ... done`
+
+      for循环的列表生成方式：
+
+      - **范围展开**：`{1..10}`或使用命令 `seq 1 10`。
+      - **通配符匹配**：`for file in *.log; do ...`可遍历当前目录下所有 `.log`文件 。
+      - **命令输出**：`for user in $(cat userlist.txt); do ...`可将命令执行结果作为列表 （注意：默认按空格、制表符、换行符分割）。
+      - **直接列出**：`for fruit in apple banana cherry; do ...`
+
+   4. **`while`循环**：`while [ 条件 ]; do ... done`或 `while 命令; do ... done`
+
+   5. **`until`循环**：当条件为假时重复执行循环体。until [ 条件 ]; do ... done
+
+   6. **`break`/ `continue`**：`break`和 `continue`默认只影响**当前所在**的循环。如果需要跳出多层嵌套循环，可以使用 `break n`，其中 `n`指定要跳出的层数 
+
+   7. **`select`菜单**：生成简单的文本菜单供用户选择。select 变量 in 选项列表; do ... done
 
 # 第三阶段：网络与服务
 
