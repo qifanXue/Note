@@ -182,17 +182,119 @@ Shell脚本的基础语法：
 
 
 
-## 网络配置与防火墙
+## 网络基础配置
+
+### IP地址与网关配置
+
+现代Linux系统主要使用ip命令集，对于不同发行版，持久化配置方法不同。Ubuntu系统使用netplan，配置文件通常在`/etc/netplan/`目录下 。而RHEL/CentOS系统则使用`/etc/sysconfig/network-scripts/ifcfg-*`文件进行配置
+
+```shell
+# 查看所有网络接口
+ip addr show
+
+# 为eth0配置静态IP地址
+sudo ip addr add 192.168.1.100/24 dev eth0
+
+# 设置默认网关
+sudo ip route add default via 192.168.1.1
+```
+
+### DNS解析配置
+
+DNS负责将域名解析为IP地址。通过编辑`/etc/resolv.conf`文件可指定DNS服务器
+
+```
+# /etc/resolv.conf
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+search example.com
+```
 
 
 
-## 服务部署与Web/数据库
+### 路由与诊断
+
+- `ping`：测试与目标主机的连通性
+- `traceroute`：跟踪数据包经过的网络路径
+- `mtr`：结合ping和traceroute功能的强大工具
+- `ss`：查看网络连接和端口监听情况（比netstat更高效）
+
+## 远程访问服务
+
+SSH是远程管理Linux服务器的标准工具。通过编辑`/etc/ssh/sshd_config`文件可以显著提升安全性。
+
+### SSH服务端安全配置
+
+```
+# 更改默认端口，减少自动化攻击
+Port 2222
+
+# 禁止root用户直接登录
+PermitRootLogin no
+
+# 强制使用密钥认证，禁用密码认证
+PasswordAuthentication no
+PubkeyAuthentication yes
+
+# 只允许特定用户登录
+AllowUsers your_username
+```
+
+修改配置后需要重启服务：`sudo systemctl restart sshd`
+
+### 密钥对认证
+
+在客户端生成密钥对：
+
+```
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+将公钥上传到服务器：
+
+```
+ssh-copy-id -p 2222 your_username@server_ip
+```
 
 
 
-## 安全加固SELinux/iptables
+## Web与数据库服务
 
 
+
+### Apache/Nginx
+
+
+
+### MySQL安装
+
+
+
+### 虚拟主机
+
+
+
+## 文件共享服务
+
+
+
+### NFS Linux共享
+
+
+
+### Samba Windows共享
+
+
+
+## 防火墙与安全
+
+
+
+### iptables/firewalld
+
+
+
+### UFW简化管理
 
 # 第四阶段
 
