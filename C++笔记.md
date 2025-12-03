@@ -196,3 +196,77 @@ Visual Studio默认安装的是MSVC编译器（微软的C++编译器） 而非g+
 项目 -> 属性 -> VC++目录 -> 包含目录 -> 编辑
 
 ![img](https://i-blog.csdnimg.cn/blog_migrate/4fa27e1beed6ecb1a5e2d41ebd208471.png)
+
+# 指针
+
+指针是一个数字，一个存储内存地址的数字
+
+1. 空指针
+
+   空指针不是一个有效的地址，我们不能从空指针中读取或写入
+
+   ```
+   void* ptr = 0;
+   void* ptr = NULL;
+   void* ptr = nullptr;
+   ```
+
+2. 指针的类型与解引用
+
+   在debug-x64的编译环境中，不论指针是什么类型，都是一个64bit的数字，但是类型在解引用（逆向引用到地址对应的变量）时，有以下几种情况：
+
+   1. 无类型逆向引用时，我们只知道一个地址，不知道这个变量的类型没无法读写
+
+      ```
+      int var = 8;
+      void *ptr = &var;
+      //*ptr = 10;会报错
+      ```
+
+   2. 类型转换
+
+      ```
+      double* ptr = (double*)&var;
+      //*ptr解引用得到的是值-9.2559592117432085e+61，是无意义的，因为ptr实际指向的是int类型变量var的内存 而不是double，代码中将 &var（类型是int\*）强制转换为double\*导致未定义行为 
+      ```
+
+3. 指针的内存分配
+
+   1. `new`关键字分配
+
+      ```
+      char* buffer = new char[8];
+      //未分配的堆内存，表现为 cd cd cd cd cd cd cd cd
+      //未分配的堆内存，表现为 cc cc cc cc cc cc cc cc
+      ```
+
+      `delete`关键字删除数据
+
+      ```
+      delete[] buffer;
+      ```
+
+   2. `memset`函数分配
+
+      ```
+      /*memset接收一个指针，分配_Size字节的内存，将每个字节填入_Val*/
+      void *__cdecl memset(void *_Dst, int _Val, size_t _Size) 
+      memset(buffer,'a',8);//61 61 61 61 61 61 61 61
+      ```
+
+4. 二级指针
+
+   指针本身也是变量 也存储在内存中 所以我们可以做指向指针的指针 二级指针或者三级指针
+
+   ```c++
+   char** ptr = &buffer;
+   ```
+
+   |  名称   |                    值                     |  类型  |
+   | :-----: | :---------------------------------------: | :----: |
+   | buffer  |           0x000002ac05d55070 ""           | char*  |
+   | &buffer | 0x000000c1deeff728{0x000002ac05d55070 ""} | char** |
+   |   ptr   | 0x000000c1deeff728{0x000002ac05d55070 ""} | char** |
+   |  *ptr   |           0x000002ac05d55070 ""           | char*  |
+
+   
