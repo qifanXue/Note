@@ -542,6 +542,174 @@ int main() {
 }
 ```
 
+# 构造函数/析构函数
+
+使用类的几个步骤：创建类、实例化类、初始化类、调用类的成员变量与函数、销毁类
+
+其中构造函数同时完成了实例化类和初始化类，我们先看看不适用构造函数的例子：
+
+```c++
+#include <iostream>
+
+class Player {
+public:
+	int x, y;
+	void Init(int sx,int sy) {
+		x = sx;
+		y = sy;
+	}
+	void printPosition() {
+		std::cout << "Player position: (" << x << ", " << y << ")\n";
+	}
+};
+
+int main() {
+	Player p;
+	p.Init(10, 20);
+	p.printPosition();
+	return 0;	
+}
+```
+
+## 构造函数
+
+构造函数同时完成了实例化和初始化
+
+> [!NOTE]
+>
+> 构造函数的语法注意以下几点：
+>
+> 1. 构造函数的名字必须和类同名
+> 2. 构造函数前面没有数据类型和修饰词
+> 3. 构造函数可以没有参数，还可以传递不同参数,同样的函数名不同的参数叫做函数**重载**，初始化列表的顺序必须按照类成员变量声明的顺序写
+
+```c++
+#include <iostream>
+
+class Player {
+public:
+    int x, y;
+
+    // 默认构造函数（只保留一个）
+    Player() : x(0), y(0) {
+        std::cout << "Default constructor called\n";
+    }
+
+    // 两个参数的构造函数
+    Player(int sx, int sy) : x(sx), y(sy) {
+        std::cout << "Two-parameter constructor called\n";
+    }
+
+    // 一个参数的构造函数
+    Player(int sx) : x(sx), y(0) {
+        std::cout << "One-parameter constructor called\n";
+    }
+
+    // 拷贝构造函数（应该用const引用，而不是指针）
+    Player(const Player& p) : x(p.x), y(p.y) {
+        std::cout << "Copy constructor called\n";
+    }
+	
+    void printPosition() {
+        std::cout << "Player position: (" << x << ", " << y << ")\n";
+    }
+};
+
+int main() {
+    Player p1;           
+    Player p2(10, 20);   
+    Player p3(30);      
+    Player p4(p2);      
+    Player p5(p2);       
+
+    p1.printPosition();
+    p2.printPosition();
+    p3.printPosition();
+    p4.printPosition();
+    p5.printPosition();
+
+    return 0;
+}
+```
+
+## 析构函数
+
+析构函数是用来销毁类实例对象的
+
+> [!NOTE]
+>
+> 析构函数的语法：
+>
+> 构造函数前面加上`~`
+
+```
+class Player {
+public:
+    int x, y;
+
+    Player() : x(0), y(0) {
+        std::cout << "Default constructor called\n";
+    }
+    
+    ~Player(){
+    	std::cout << "destroy the instance" << std::endl;
+    }
+};
+```
+
+## 栈内存和堆内存
+
+上面使用的构造方式都是栈内存，栈内存的实例的析构函数会在实例作用域失效后自动调用
+
+而堆内存，构造和销毁分别需要使用`new`、`delete`关键字
+
+```c++
+#include <iostream>
+
+class Player {
+public:
+    int x, y;
+    Player(int sx,int sy){
+		x = sx;
+		y = sy;
+        std::cout << "Default constructor called\n";
+    }
+    ~Player(){
+        std::cout << "Destructor called\n";
+	}
+    void printPosition() {
+        std::cout << "Player position: (" << x << ", " << y << ")\n";
+    }
+};
+
+void func() {
+    Player p1(1,1);
+	p1.printPosition();
+}
+
+int main() {
+    func();
+    Player* p2 = new Player(2,6);      
+    p2->printPosition();
+	delete p2;
+
+    return 0;
+}
+
+/*
+Default constructor called
+Player position: (1, 1)
+Destructor called
+Default constructor called
+Player position: (2, 6)
+Destructor called
+*/
+```
+
+
+
+
+
 
 
 
