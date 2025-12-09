@@ -269,4 +269,302 @@ Visual Studio默认安装的是MSVC编译器（微软的C++编译器） 而非g+
    |   ptr   | 0x000000c1deeff728{0x000002ac05d55070 ""} | char** |
    |  *ptr   |           0x000002ac05d55070 ""           | char*  |
 
+
+
+
+# 引用
+
+引用是指针的语法方法，相当于变量的别名，对引用所做的操作相当于对原变量做了同样的操作
+
+```c++
+int a = 8;
+int& ref = a;//ref 是 a 的引用
+ref = 10;// a = 10
+```
+
+在函数中，变量复制到参数中，离开函数后，变量的改变不会被保存
+
+```c++
+void ChangeVal(int value){
+    value++;
+}
+
+int main(){
+    int a = 8;
+    ChangeVal(a);
+    std::cout << a << std::endl;//8
+}
+```
+
+如何保留函数内的改变呢？有两种方式：
+
+1. 使用指针作为传入参数
+
+   ```
+   void ChangeVal(int* value){
+       (*value)++;
+   }
    
+   int main(){
+       int a = 8;
+       int* ptr = &a;
+       ChangeVal(ptr);
+       std::cout << a << std::endl;//9
+   }
+   ```
+
+   > [!NOTE]
+   >
+   > 记录一下指针在这里的解引用
+   >
+   > ```c++
+   > int a = 8; // a是一个整型变量，占据sizeof(int)的空间，值为8
+   > int* ptr = a; //ptr是一个指针，存储的是a的地址空间
+   > int b = *(ptr ++)/; //b是地址+1的地址所存储的值
+   > int c = (*ptr) ++; //(*ptr)指的是a，a++后a为9，c也为9
+   > ```
+   >
+   > 
+
+2. 使用引用作为传入参数
+
+   ```c++
+   void ChangeVal(int& value){
+       value++;
+   }
+   
+   int main(){
+       int a = 8;
+       int& ref = a;
+       ChangeVal(ref);
+       std::cout << a << std::endl;//9
+       ChangeVal(a);
+       std::cout << a << std::endl;//10
+   }
+   ```
+
+当指定了引用的对象后，不可以转而引用别的对象；指针可以
+
+```
+int a = 5;
+int b = 8;
+
+int& ref = a;
+ref = b;
+std::cout<<a<<std::endl;//8
+ref ++;
+std::cout<<a<<std::endl;//9
+
+int *ptr = &a;
+std::cout<<(*ptr)<<std::endl;//9
+ptr = &b;
+std::cout<<(*ptr)<<std::endl;//8
+```
+
+
+
+# 类(Class)/结构(Struct)
+
+类和结构都是一种语法方法，将一些数据与处理这些数据的函数集成。
+
+类/结构的区别在于，类默认是`private`,结构默认是`public`
+
+> [!Note]
+>
+> 结构是C++为了兼容C遗留的，因为C中只有`struct`
+>
+> 对于只表示变量的结构，不包含大量功能的，倾向于使用`struct`
+>
+> 我们不会倾向于在`struct`中使用继承
+
+```c++
+class Player
+{
+public:
+    int id;
+    int x,y;
+    int speed;
+private:
+	int m_scores;
+public:
+    void Move(int xa,int xb)
+    {
+        x += xa*speed;
+        y += xb*speed;
+    }
+    
+};
+    
+Player player;
+```
+
+>[!Note]
+>
+>`m_`前缀，约定这是一个私有的类成员变量
+
+```c++
+struct Vec2
+{
+    float x, y;
+    
+    void Add(const Vec2& other)
+    {
+        x += other.x;
+        y += other.y;
+    }
+};
+```
+
+
+
+# `static`关键字
+
+static可以修饰类/结构/函数/变量
+
+static修饰的对象的生存期几乎是整个程序运行的过程，作用域是所在的函数/类内。
+
+1. 在类/结构外使用
+
+   若在两个不同文件中同时定义一个相同名称的对象，会出现报错
+
+   ```c++
+   //static.cpp
+   int variable = 5;
+   };
+   
+   //main.cpp
+   int variable = 5;
+   ```
+
+   有两种解决方法:
+
+   - 使用`static`,被`static`修饰的对象无法被作用域外识别到
+
+     ```c++
+     //static.cpp
+     static int variable = 5;
+     //main.cpp
+     int variable = 10;
+     ```
+
+   - 使用`extern`,会在外部寻找
+
+     ```	
+     //static.cpp
+     int variable = 5;
+     //main.cpp
+     extern int variable;//5
+     ```
+
+     
+
+2. 在类/结构内使用
+
+   在类/结构中用`static`修饰的对象是所有类/结构的实例所共享的数据,这个对象必须在类外面声明和初始化
+
+   ```c++
+   #include <iostream>
+   
+   class Player {
+   public:
+   	static int areaID;
+   	static void area() {
+   		std::cout << areaID << std::endl;
+   	}
+   };
+   int Player::areaID;
+   
+   int main() {
+   	Player::areaID = 10;
+   	Player::area();//10
+   	Player p;
+   	p.areaID = 20;
+   	p.area();//20
+   }
+   ```
+
+   
+
+# 枚举(Enum)
+
+`enum`就是将数值放到一个集合里面，创建如下:
+
+```c++
+enum Example
+{
+    A,B,C
+};
+/*几个注意点
+1.enum内变量后面没有分号
+*/
+```
+
+`enum`可以指定数值的数据类型，但是必须是整型，不能是浮点数
+
+`enum`内初始化可以全部初始化，也可以全不初始化（默认是0，1，2），或初始化第一个，后面的递增
+
+```c++
+#include <iostream>
+
+class Player {
+public:
+	/*static const int LogLevelError = 0;
+	static const int LogLevelWarning = 1;
+	static const int LogLevelInfo = 2;*/
+	enum Example3 {
+		LogLevelError = 0, LogLevelWarning, LogLevelInfo
+	};
+private:
+	int m_LogLevel = LogLevelInfo;
+};
+
+enum Example1 {
+	A,B,C
+};
+
+enum Example2 : unsigned char {
+	D=1,E=2,F=3
+};
+
+enum {
+	G = 1, H = 2, I = 3
+};
+
+int main() {
+	std::cout << A << " " << B << " " << C << " " << std::endl;//0,1,2
+	std::cout << sizeof(A)  << std::endl;//4
+	std::cout << sizeof(D) << std::endl;//1
+	//Example1::A = 7;报错是需要可修改的左值
+	int A = 7;
+	std::cout << A << std::endl;//7
+	std::cout << Example1::A << std::endl;//0
+	std::cout << Player::LogLevelError << " " << Player::LogLevelWarning << " " << Player::LogLevelInfo << " " << std::endl;//0,1,2
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
