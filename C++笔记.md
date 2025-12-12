@@ -423,6 +423,28 @@ static可以修饰类/结构/函数/变量
 
 static修饰的对象的生存期几乎是整个程序运行的过程，作用域是所在的函数/类内。
 
+```c++
+#include<iostream>
+int* returnX() {
+    static int x = 10;
+    return &x;
+}
+int main() {
+    int* a1 = returnX();
+    std::cout << a1 << " " << (*a1) << std::endl;
+    int* a2 = returnX();
+    std::cout << a2 << " " << (*a2) << std::endl;
+
+    return 0;
+}
+/*
+00007FF6F9ECF004 10
+00007FF6F9ECF004 10
+*/
+```
+
+c
+
 1. 在类/结构外使用
 
    若在两个不同文件中同时定义一个相同名称的对象，会出现报错
@@ -708,7 +730,320 @@ Destructor called
 
 
 
+# 继承
 
+子类可以继承父类中所有`public`的变量与函数
+
+```c++
+class People{
+public:
+    const char* name;
+    People(const char* name):name(name){
+        std::cout<<"New name is created!"<<std::endl;
+    }
+};
+
+class Student : public People{
+public:
+    int ID;
+    Student(int ID):ID(ID){}
+};
+```
+
+
+
+# 虚函数
+
+先看一种向上转型的例子
+
+```c++
+#include <iostream>
+
+class People {
+public:
+    /*const char* name;
+    People(const char* name) :name(name) {
+        std::cout << "New name is created!" << std::endl;
+    }*/
+    void Getname() {
+        std::cout << "People!" << std::endl;
+    }
+};
+
+class Student : public People {
+public:
+    int ID;
+    //Student(int ID) :ID(ID) {};
+    void Getname() {
+        std::cout << "Student" << std::endl;
+    }
+
+};
+
+
+int main() {
+    People* p = new People();
+    Student* s = new Student();
+    p->Getname();//People!
+    s->Getname();//Student
+    People* n = s;//People!
+    n->Getname();
+
+    return 0;
+}
+```
+
+子类可以对父类里的一些同名的方法进行覆盖，在父类中的函数前加`virtual`关键字变成虚函数，在子类的函数中加入`override`
+
+```c++
+#include <iostream>
+
+class People {
+public:
+    /*const char* name;
+    People(const char* name) :name(name) {
+        std::cout << "New name is created!" << std::endl;
+    }*/
+    virtual void Getname() {
+        std::cout << "People!" << std::endl;
+    }
+};
+
+class Student : public People {
+public:
+    int ID;
+    //Student(int ID) :ID(ID) {};
+    void Getname() override {
+        std::cout << "Student" << std::endl;
+    }
+
+};
+
+
+int main() {
+    People* p = new People();
+    Student* s = new Student();
+    p->Getname();//People!
+    s->Getname();//Student
+    People* n = s;
+    n->Getname();//Student
+
+    return 0;
+}
+```
+
+虚函数是如何运作的呢？当基类中存在虚函数时，类就会创建一个对应的虚表，虚表中记载着该类所有虚函数的地址，同时在类中留下虚表的指针
+
+虚函数（virtual）是C++实现运行时多态的关键机制 它的核心原理是
+
+- 虚表（vtable）：每个包含虚函数的类都有一个虚表 本质是一个函数指针数组 存储该类所有虚函数的实际地址
+- 虚表指针（vptr）：每个对象内部隐含一个指针（vptr） 指向其所属类的虚表 
+
+在运行时 通过对象的vptr找到虚表 再通过虚表索引调用正确的函数实现
+
+内存布局：
+
+- People对象：
+
+  ```plaintext
+  | vptr (指向 People 的虚表) | People 其他成员... |
+  ```
+
+- Student对象：
+
+  ```plaintext
+  | vptr (指向 Student 的虚表) | Student 基类成员... | Student 成员（如ID）... |
+  ```
+
+虚表内容：
+
+- Entity的虚表：
+
+  ```plaintext
+  [0] People::GetName 的地址
+  ```
+
+- Player的虚表：
+
+  ```plaintext
+  [0] Student::GetName 的地址  // 覆盖了基类的函数地址
+  ```
+
+当执行`entity->GetName()`时：  
+
+1. 获取vptr：通过People指针找到对象的vptr（位于对象内存起始位置）
+2. 查找虚表：通过vptr找到所属类的虚表 而entity也就是p的这个地址的起始位置 存储的其实仍然是Player的虚表 所以会调用到Student的GetName
+3. 调用函数：从虚表中按索引（例如索引0对应GetName）取出函数地址 调用 `Student::GetName()`
+
+# 纯虚函数
+
+纯虚函数在基类中没有实现这个函数，强制要求子类实现，否则无法实例化
+
+```c++
+#include <iostream>
+
+class People {
+public:
+    virtual void Getname() = 0;
+};
+
+class Student : public People {
+public:
+    int ID;
+    //Student(int ID) :ID(ID) {};
+    /*void Getname() override {
+        std::cout << "Student" << std::endl;
+    }*/
+
+};
+
+
+int main() {
+    //People* p = new People();
+    Student* s = new Student();//报错
+ 
+    return 0;
+}
+```
+
+# public/protected/private
+
+| 访问控制符    | 当前类 | 派生类 | 类外部 | 友元 |
+| :------------ | :----- | :----- | :----- | :--- |
+| **public**    | ✓      | ✓      | ✓      | ✓    |
+| **protected** | ✓      | ✓      | ✗      | ✓    |
+| **private**   | ✓      | ✗      | ✗      | ✓    |
+
+# 数组
+
+创建的数组传递的其实是一个指针，在指针的基础上加上偏移量来改变给定位置的值
+
+```c++
+#include <iostream>
+
+int main() {
+	// 栈创建
+	int example1[5];
+	example1[0] = 2;
+	std::cout << example1 << std::endl;
+	std::cout << example1[0] << std::endl;
+
+	// 堆创建
+	int* example2 = new int[5];
+	example2[0] = 6;
+	std::cout << example2 << std::endl;
+	std::cout << example2[0] << std::endl;
+	delete[] example2;
+
+	//观察指针
+	int* ptr = example1;
+	example1[2] = 7;
+	std::cout << example1[2] << std::endl;
+	*(ptr + 2) = 9;
+	std::cout << example1[2] << std::endl;
+
+	return 0;
+}
+/*
+000000BEFB7EFC08
+2
+0000027C12585BB0
+6
+7
+9
+*/
+```
+
+
+
+# 字符串
+
+## c风格字符串
+
+```c++
+#include<iostream>
+
+int main() {
+	const char* name1 = "123";
+	const char name2[3] = { '1','2','3'};
+	const char name3[4] = { '1','2','3','\0'};
+
+	std::cout << name1 << std::endl;
+	std::cout << name2 << std::endl;
+	std::cout << name3 << std::endl;
+
+	return 0;
+}
+/*
+123
+123烫烫烫烫烫烫烫烫烫烫烫烫烫烫?23
+123
+*/
+```
+
+## string
+
+包括字符串的拼接、多行文本、查找
+
+```c++
+#include<iostream>
+using namespace std::string_literals;
+int main() {
+	/*字符串拼接*/ 
+	//后缀
+	std::string s1 = "hello"s + " " + "world";
+	std::cout << s1 << std::endl;
+	//显示转换
+	std::string s2 = (std::string)"hello" + " " + "China";
+	std::cout << s2 << std::endl;
+	//+=
+	std::string s3 = "Hello";
+	s3 += " Shanghai";
+	std::cout << s3 << std::endl;
+
+	/*处理多行文本*/
+	//使用R
+	std::string l1= R"(Line1
+Line2
+Line3
+)"s;  
+	std::cout << l1 << std::endl;
+	//使用+拼接
+	std::string l2 = "Line1\n"s +
+		"Line2\n" +
+		"Line3\n" ;
+	std::cout << l2 << std::endl;
+	//方法三
+	std::string l3 = "Line1\n"s
+		"Line2\n"s
+		"Line3\n"s;
+	std::cout << l3 << std::endl;
+
+	/*查找*/
+	bool findch = s1.find("lo") != std::string::npos;
+	if (findch) std::cout << "Get!" << std::endl;
+
+	return 0;
+}
+/*
+hello world
+hello China
+Hello Shanghai
+Line1
+Line2
+Line3
+
+Line1
+Line2
+Line3
+
+Line1
+Line2
+Line3
+
+Get!
+*/
+```
 
 
 
