@@ -363,7 +363,7 @@ std::cout<<(*ptr)<<std::endl;//8
 
 
 
-# 类(Class)/结构(Struct)
+# 类(`class`)/结构(`struct`)
 
 类和结构都是一种语法方法，将一些数据与处理这些数据的函数集成。
 
@@ -507,7 +507,7 @@ c
 
    
 
-# 枚举(Enum)
+# 枚举(`enum`)
 
 `enum`就是将数值放到一个集合里面，创建如下:
 
@@ -906,7 +906,7 @@ int main() {
 }
 ```
 
-# public/protected/private
+# `public`/``protected`/`private`
 
 | 访问控制符    | 当前类 | 派生类 | 类外部 | 友元 |
 | :------------ | :----- | :----- | :----- | :--- |
@@ -1047,17 +1047,197 @@ Get!
 
 
 
+# `const`关键字
 
+`const`修饰表示不能更改
 
+## `const`修饰指针
 
+> [!NOTE]
+>
+> 有一个方便理解的角度：
+>
+> 1. `const int *p`：`const`修饰的是`*p`，是指针的解引用，即指针所指向的值是不可变的
+> 2. `int* const p`：`const`修饰的是`p`,是指针本身，即指针存储的地址是不可变的
+> 3. `const int* const p`：指针以及指针所指向的值都是不可变的
 
+1. `const`在指针前
 
+   ```c++
+   #include<iostream>
+   
+   int main() {
+   	int a = 10;
+   	const int* p = &a; // pointer to const int
+   	std::cout << "Value of a: " << a << std::endl;
+   	std::cout << "Value of *p: " << *p << std::endl;
+   	// *p = 20; // This line would cause a compilation error
+   	/*
+   	Value of a: 10
+   	Value of *p: 10	
+   	*/
+   	return 0;
+   }
+   ```
 
+   
 
+2. `const`在指针后
 
+   ```c++
+   #include<iostream>
+   
+   int main() {
+   	int a = 10;
+   	int* const p = &a; // pointer to const int
+   	std::cout << "Value of a: " << a << std::endl;
+   	std::cout << "Value of *p: " << *p << std::endl;
+   	// p = nullptr; // Error: cannot change the address stored in a const pointer
+   	/*
+   	Value of a: 10
+   	Value of *p: 10	
+   	*/
+   	return 0;
+   }
+   ```
 
+   
 
+## `const`在类内使用
 
+- 在类的方法名后面添加`const`，表示这个方法**不会修改类的任何成员变量**
+
+```c++
+class Entity {
+private:
+    int m_X, m_Y;
+public:
+    int GetX() const  // 这是一个const方法
+    {
+        // m_X = 2;  // 不合法！不能修改成员变量
+        return m_X;
+    }
+};
+```
+
+- 指针和`const`的结合
+
+```c++
+class Entity {
+private:
+    int* m_X, *m_Y;     // ✅ 正确写法：两个都是指针
+    
+public:
+    const int* const GetX() const
+    {
+        // 含义：
+        // 1. 返回类型：指向常量int的常量指针
+        // 2. 方法本身：不会修改类成员
+        return m_X;
+    }
+};
+```
+
+- 为什么需要`const`方法
+
+  1. 支持常量引用/指针参数
+
+     ```c++
+     void PrintEntity(const Entity& e)  // 常量引用参数
+     {
+         // 只能调用e的const方法
+         std::cout << e.GetX() << std::endl;
+     }
+     ```
+
+     **重要原则**：如果`GetX()`不是`const`方法，在`PrintEntity`中就不能调用它，因为不能保证它不会修改`e`
+
+  2. 可以重载`const`和非`const`版本
+
+     ```c++
+     class Entity {
+     private:
+         int m_X, m_Y;
+     public:
+         int GetX() const       // const版本
+         {
+             return m_X;
+         }
+         
+         int& GetX()            // 非const版本（返回引用）
+         {
+             return m_X;
+         }
+     };
+     ```
+
+     **编译器规则**：
+
+     - 当对象是`const`时，调用`const`版本
+     - 当对象不是`const`时，调用非`const`版本
+
+## `mutable`关键字
+
+1. 在类中的使用
+
+   允许在`const`方法中修改特定的成员变量：
+
+   ```c++
+   class Entity {
+   private:
+       int m_X, m_Y;
+       mutable int var;  // 标记为mutable
+       
+   public:
+       int GetX() const
+       {
+           var = 2;  // ✅ 合法！因为var是mutable
+           return m_X;
+       }
+   };
+   ```
+
+   
+
+2. 在Lambda表达式中的使用
+
+   - Lambda表达式捕获规则
+
+     ```
+     auto f = [捕获列表](参数列表) { 函数体 };
+     ```
+
+     | 捕获方式 | 含义                 | 示例               |
+     | -------- | -------------------- | ------------------ |
+     | `[x]`    | 值捕获x的副本        | 内部修改不影响外部 |
+     | `[&x]`   | 引用捕获x            | 内部修改会影响外部 |
+     | `[=]`    | 默认值捕获所有变量   | 所有变量都有副本   |
+     | `[&]`    | 默认引用捕获所有变量 | 所有变量都是引用   |
+     | `[]`     | 不捕获任何变量       |                    |
+
+   - 使用`mutable`
+
+     ```c++
+     int main() {
+         int x = 8;
+         
+         // 错误示例：默认值捕获的变量是const
+         auto f1 = [=]() {
+             // x++;  // ❌ 不能修改，x的副本是const
+         };
+         
+         // 正确示例：使用mutable
+         auto f2 = [=]() mutable {
+             x++;  // ✅ 可以修改，但只修改副本
+             std::cout << x << std::endl;  // 输出9
+         };
+         
+         f2();
+         std::cout << x << std::endl;  // 仍然是8
+     }
+     ```
+
+     
 
 
 
